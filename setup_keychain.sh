@@ -3,7 +3,7 @@
 # Re-run to update it. The Python scripts read it via `security`.
 set -euo pipefail
 
-SERVICE="mailflow-privateemail"
+SERVICE="M2FS-privateemail"
 
 read -rp "PrivateEmail address (e.g. you@yourdomain.com): " ACCOUNT
 read -rsp "Password (app password recommended): " PASSWORD

@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 import yaml
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yaml")
-KEYRING_SERVICE = "mailflow-privateemail"
+KEYRING_SERVICE = "Mail-to-Folder-Sync"
 
 
 def load_config(path: str = CONFIG_PATH) -> dict:
@@ -51,7 +51,7 @@ class KeyringCredentialProvider(CredentialProvider):
 class EnvCredentialProvider(CredentialProvider):
     """Backed by an environment variable. Useful for containers/CI."""
 
-    def __init__(self, var: str = "MAILFLOW_PASSWORD"):
+    def __init__(self, var: str = "M2FS_PASSWORD"):
         self._var = var
 
     def get_password(self, account: str) -> str:
@@ -63,6 +63,6 @@ class EnvCredentialProvider(CredentialProvider):
 
 def default_provider() -> CredentialProvider:
     """Pick a provider. Env var wins if present (containers), else keyring."""
-    if os.environ.get("MAILFLOW_PASSWORD"):
+    if os.environ.get("M2FS_PASSWORD"):
         return EnvCredentialProvider()
     return KeyringCredentialProvider()
