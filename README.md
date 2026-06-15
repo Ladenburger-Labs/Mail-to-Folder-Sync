@@ -1,9 +1,6 @@
-# mailflow
+# Mail-to-Folder-Sync
 
-Two small, cross-platform scripts automating email <-> filesystem, talking
-directly to PrivateEmail over IMAP/SMTP. Runs identically on macOS and Windows.
-Thunderbird is never touched directly — drafts and processed mail sync through
-the server, so they appear in Thunderbird normally.
+A collection of small, cross-platform scripts to automate email <-> filesystem sync.
 
 ## What each script does
 
