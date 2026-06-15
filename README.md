@@ -1,8 +1,9 @@
 # mailflow
 
-Two small scripts automating email ↔ filesystem on macOS, talking directly to
-PrivateEmail over IMAP/SMTP. Thunderbird is never touched directly — drafts and
-processed mail sync through the server, so they appear in Thunderbird normally.
+A collection of small scripts to automate email ↔ filesystem interactions. 
+
+## Basic Idea
+Connect to mail server directly (IMAP/SMTP), instead of going through local mail clients (e.g. Outlook, Mail, Thunderbird, etc).
 
 ## What each script does
 
