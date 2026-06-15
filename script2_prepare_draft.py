@@ -21,7 +21,7 @@ from email.utils import formatdate
 
 from imap_tools import MailBox
 
-from common import load_config, get_password
+from common import load_config, default_provider
 
 
 def pick_file(source_dir: str, filename: str | None) -> str:
@@ -74,7 +74,7 @@ def main():
                         fc.get("body", ""), file_path)
 
     host = cfg["imap"]["host"]
-    pwd = get_password(sender)
+    pwd = default_provider().get_password(sender)
     drafts = cfg["script2"]["drafts_folder"]
 
     with MailBox(host).login(sender, pwd) as mailbox:

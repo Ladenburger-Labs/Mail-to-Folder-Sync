@@ -17,7 +17,7 @@ import sys
 
 from imap_tools import MailBox, AND
 
-from common import load_config, get_password
+from common import load_config, default_provider
 
 
 def _safe_name(folder: str, name: str) -> str:
@@ -71,7 +71,7 @@ def main():
     cfg = load_config()
     host = cfg["imap"]["host"]
     user = cfg["imap"]["user"]
-    pwd = get_password(user)
+    pwd = default_provider().get_password(user)
     watch = cfg["script1"]["watch_folder"]
 
     with MailBox(host).login(user, pwd, initial_folder=watch) as mailbox:

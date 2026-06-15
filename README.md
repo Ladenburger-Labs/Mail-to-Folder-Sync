@@ -1,9 +1,9 @@
-# Mail-to-Folder-Sync
+# mailflow
 
-A collection of small scripts to automate email ↔ filesystem interactions. 
-
-## Basic Idea
-Connect to mail server directly (IMAP/SMTP), instead of going through local mail clients (e.g. Outlook, Mail, Thunderbird, etc).
+Two small, cross-platform scripts automating email <-> filesystem, talking
+directly to PrivateEmail over IMAP/SMTP. Runs identically on macOS and Windows.
+Thunderbird is never touched directly — drafts and processed mail sync through
+the server, so they appear in Thunderbird normally.
 
 ## What each script does
 
@@ -14,22 +14,36 @@ Connect to mail server directly (IMAP/SMTP), instead of going through local mail
   folder, builds an email (recipient/subject depend on which folder key you
   pass), and saves it as a Drafts message for you to review and send.
 
-## Setup
+## Portability design
+
+- All application logic is pure Python and OS-independent.
+- The only OS-specific concerns are isolated behind boundaries:
+  - Credentials go through a `CredentialProvider` interface in `common.py`.
+    The default uses the `keyring` library, which selects the native store
+    automatically (macOS Keychain, Windows Credential Locker).
+  - "Keep running at login" is a per-OS supervisor, shipped as config rather
+    than code: `com.you.mailflow.plist` (macOS launchd) and
+    `RUNNING_ON_WINDOWS.md` (Windows Task Scheduler).
+- A second provider (`EnvCredentialProvider`) reads `MAILFLOW_PASSWORD`, so the
+  same code drops into a container later with no changes.
+
+## Setup (macOS and Windows alike)
 
 - Install Python 3.10+ and create a venv:
-  - `python3 -m venv .venv`
-  - `source .venv/bin/activate`
-  - `pip install imap-tools pyyaml`
-- Store your password in the Keychain (run once):
-  - `chmod +x setup_keychain.sh && ./setup_keychain.sh`
+  - macOS:   `python3 -m venv .venv && source .venv/bin/activate`
+  - Windows: `py -m venv .venv && .venv\Scripts\activate`
+- Install dependencies:
+  - `pip install -r requirements.txt`
+- Store your password in the native secret store (run once):
+  - `python setup_credentials.py`
 - Edit `config.yaml`:
   - set `imap.user` / `smtp.user` to your address
-  - set the folder names and absolute paths (use real `/Users/you/...` paths)
+  - set folder names and absolute paths (use paths native to your OS)
 
 A note on credentials: PrivateEmail supports app-specific passwords in its
 webmail settings. Prefer one of those over your main account password.
 
-## Usage
+## Usage (same on both OSes)
 
 - Script 1, process backlog once and exit:
   - `python script1_save_attachments.py --once`
@@ -42,9 +56,10 @@ webmail settings. Prefer one of those over your main account password.
 
 ## Event-driven at login (Script 1)
 
-- Edit the paths in `com.you.mailflow.plist`
-- `cp com.you.mailflow.plist ~/Library/LaunchAgents/`
-- `launchctl load ~/Library/LaunchAgents/com.you.mailflow.plist`
+- macOS — edit the paths in `com.you.mailflow.plist`, then:
+  - `cp com.you.mailflow.plist ~/Library/LaunchAgents/`
+  - `launchctl load ~/Library/LaunchAgents/com.you.mailflow.plist`
+- Windows — see `RUNNING_ON_WINDOWS.md` (Task Scheduler).
 
 ## Design notes
 
@@ -54,12 +69,13 @@ webmail settings. Prefer one of those over your main account password.
   reconnects and reruns, no hidden state file to corrupt.
 - Drafts via IMAP `APPEND` — you always review before anything sends. No
   automated sending path exists in this code by design.
-- Boundaries kept separate (`common.py` for config/creds, IMAP access isolated
-  inside each script) so the IMAP layer can be swapped or mocked later.
+- Boundaries kept separate so OS-specific bits and the IMAP layer can be swapped
+  or mocked without touching the scripts.
 
 ## Possible next steps
 
 - Per-folder save rules / subfolder routing in Script 1.
-- Multiple watch folders (one IDLE connection each, or one agent per folder).
+- Multiple watch folders (one supervisor entry per folder).
 - A sidecar `.yaml` next to a file in Script 2 to override recipient/subject
   per-file instead of per-folder.
+- Containerize using `EnvCredentialProvider` if this moves to a server.

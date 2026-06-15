@@ -1,12 +1,21 @@
-"""Shared helpers: load config, read credentials from macOS Keychain."""
+"""Shared helpers: config loading and a cross-platform credential provider.
+
+Credentials never live in config or in the process environment. They are
+read from the OS-native secret store via the `keyring` library:
+  - macOS  -> Keychain
+  - Windows -> Credential Locker
+  - Linux  -> Secret Service (if you ever run there)
+
+The CredentialProvider abstraction keeps the storage mechanism behind an
+interface, so the scripts depend on the interface, not on any OS.
+"""
 import os
-import subprocess
-import sys
+from abc import ABC, abstractmethod
 
 import yaml
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yaml")
-KEYCHAIN_SERVICE = "mailflow-privateemail"
+KEYRING_SERVICE = "mailflow-privateemail"
 
 
 def load_config(path: str = CONFIG_PATH) -> dict:
@@ -14,21 +23,46 @@ def load_config(path: str = CONFIG_PATH) -> dict:
         return yaml.safe_load(fh)
 
 
-def get_password(account: str) -> str:
-    """Read the password for `account` from the macOS login keychain.
+class CredentialProvider(ABC):
+    """Interface for retrieving a password for a given account."""
 
-    Stored once via setup_keychain.sh. We never keep the password in config
-    or in the process environment.
-    """
-    try:
-        result = subprocess.run(
-            ["security", "find-generic-password",
-             "-s", KEYCHAIN_SERVICE, "-a", account, "-w"],
-            capture_output=True, text=True, check=True,
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        sys.exit(
-            f"No keychain entry for '{account}'. "
-            f"Run ./setup_keychain.sh first."
-        )
+    @abstractmethod
+    def get_password(self, account: str) -> str:
+        ...
+
+
+class KeyringCredentialProvider(CredentialProvider):
+    """Backed by the OS-native secret store (keyring lib)."""
+
+    def __init__(self, service: str = KEYRING_SERVICE):
+        self._service = service
+
+    def get_password(self, account: str) -> str:
+        import keyring
+        pwd = keyring.get_password(self._service, account)
+        if not pwd:
+            raise SystemExit(
+                f"No stored credential for '{account}'. "
+                f"Run: python setup_credentials.py"
+            )
+        return pwd
+
+
+class EnvCredentialProvider(CredentialProvider):
+    """Backed by an environment variable. Useful for containers/CI."""
+
+    def __init__(self, var: str = "MAILFLOW_PASSWORD"):
+        self._var = var
+
+    def get_password(self, account: str) -> str:
+        pwd = os.environ.get(self._var)
+        if not pwd:
+            raise SystemExit(f"Environment variable {self._var} is not set.")
+        return pwd
+
+
+def default_provider() -> CredentialProvider:
+    """Pick a provider. Env var wins if present (containers), else keyring."""
+    if os.environ.get("MAILFLOW_PASSWORD"):
+        return EnvCredentialProvider()
+    return KeyringCredentialProvider()

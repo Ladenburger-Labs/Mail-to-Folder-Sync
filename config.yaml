@@ -1,0 +1,47 @@
+# PrivateEmail (Namecheap) connection.
+# Credentials are NOT stored here — run: python setup_credentials.py
+#
+# Paths below use macOS style. On Windows use native paths, e.g.
+#   save_dir: "C:/Users/you/Documents/incoming-attachments"
+# (forward slashes work fine in YAML and Python on Windows.)
+imap:
+  host: mail.privateemail.com
+  port: 993            # IMAP over SSL
+  user: you@yourdomain.com
+
+smtp:
+  host: mail.privateemail.com
+  port: 465            # SMTP over SSL
+  user: you@yourdomain.com
+
+# ---- Script 1: save incoming attachments ----
+# Watch this IMAP folder; save attachments from new mail to save_dir;
+# then move the processed message into processed_folder so it is never
+# handled twice (survives reconnects and reruns).
+script1:
+  watch_folder: "INVOICES"          # the IMAP folder to monitor
+  processed_folder: "INVOICES/done" # message moved here after handling
+  save_dir: "/Users/you/Documents/incoming-attachments"
+  # Only save these extensions (lowercase, no dot). Empty list = save all.
+  allowed_extensions:
+    - pdf
+    - xlsx
+    - csv
+
+# ---- Script 2: prepare a draft from a file ----
+# You run this with a folder key. Each key defines where files come from
+# and what recipient/subject the draft should use.
+# Usage: python script2_prepare_draft.py <folder_key> [filename]
+script2:
+  drafts_folder: "Drafts"   # PrivateEmail uses "Drafts"
+  folders:
+    invoices:
+      source_dir: "/Users/you/Documents/outgoing/invoices"
+      recipient: "accounting@client-a.com"
+      subject: "Invoice attached"
+      body: "Hi,\n\nPlease find the attached file.\n\nBest regards"
+    reports:
+      source_dir: "/Users/you/Documents/outgoing/reports"
+      recipient: "manager@client-b.com"
+      subject: "Monthly report"
+      body: "Hi,\n\nThis month's report is attached.\n\nBest regards"
