@@ -1,4 +1,4 @@
-# mailflow
+# Mail-to-Folder-Sync
 
 A collection of small scripts to automate email ↔ filesystem interactions. 
 
